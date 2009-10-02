@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<glade-interface>
+  <!-- interface-requires gtk+ 2.16 -->
+  <!-- interface-naming-policy toplevel-contextual -->
+  <widget class="GtkWindow" id="window">
+    <property name="visible">True</property>
+    <property name="title" translatable="yes">window</property>
+    <property name="default_width">500</property>
+    <property name="default_height">400</property>
+    <child>
+      <widget class="GtkTreeView" id="windowtree">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+      </widget>
+    </child>
+  </widget>
+</glade-interface>
