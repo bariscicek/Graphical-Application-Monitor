@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -74,49 +75,46 @@ add_text (const gchar *rowtext)
 	
 }
 
-int
+void
 main (int argc, char *argv[])
 {
- 	GtkWidget *window;
-	WnckScreen *current_screen;
-	GList *window_list = NULL;
-	GList *item = NULL;
+    GtkWidget *window;
+    WnckScreen *current_screen;
+    GList *window_list = NULL;
+    GList *item = NULL;
     gchar *name = NULL;
 
 
-	
-	gtk_set_locale ();
-	gtk_init (&argc, &argv);
+
+    gtk_set_locale ();
+    gtk_init (&argc, &argv);
 
 
-	current_screen = wnck_screen_get_default ();
+    current_screen = wnck_screen_get_default ();
     g_return_if_fail (current_screen != NULL);
     wnck_screen_force_update(current_screen);
-	window_list = wnck_screen_get_windows (current_screen);
+    window_list = wnck_screen_get_windows (current_screen);
     name = wnck_screen_get_window_manager_name (current_screen);
-    g_debug (name);
-	
-	window = create_window ();
-	for (item = g_list_first (window_list); item->next != NULL; item = item->next) {
+
+    window = create_window ();
+    for (item = g_list_first (window_list); item->next != NULL; item = item->next) {
         WnckApplication *application;
         gchar *log;
         gchar *app_name;
+        gchar *window_title;
+        time_t timestamp;
 
         application = wnck_window_get_application (item->data);
         app_name = wnck_application_get_name (application);
-        
-        if (wnck_window_has_name (item->data)) 
-            g_debug (wnck_window_get_name(item->data));
+        window_title = wnck_window_get_name (item->data);
+        timestamp = time (NULL);
+        g_print("[%d] %s - %s\n", timestamp, app_name, window_title);
+                
+    }
 
-        
-	}
+    gtk_widget_show (window);
 
-
-	
-	gtk_widget_show (window);
-
-	gtk_main ();
-	return 0;
+    gtk_main ();
 }
 
 
