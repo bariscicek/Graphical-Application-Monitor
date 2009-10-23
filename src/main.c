@@ -29,9 +29,12 @@
 #include <config.h>
 
 #include <gtk/gtk.h>
+#include <glib-2.0/glib.h>
 #include <glade/glade.h>
 
 #include <libwnck/libwnck.h>
+
+#include "gtk_windowwatcher.h"
 
 
 
@@ -71,8 +74,7 @@ add_text (const gchar *rowtext)
 	gtk_text_buffer_insert_at_cursor (buffer, rowtext, -1);
 	/* FIXME: don't call api twice instead add \n to rowtext */
 	gtk_text_buffer_insert_at_cursor (buffer, "\n", -1);	
-	//gtk_text_view_set_buffer (textview, buffer);
-	
+	//gtk_text_view_set_buffer (textview, buffer);	
 }
 
 void
@@ -82,7 +84,6 @@ main (int argc, char *argv[])
     WnckScreen *current_screen;
     GList *window_list = NULL;
     GList *item = NULL;
-    gchar *name = NULL;
 
 
 
@@ -94,21 +95,16 @@ main (int argc, char *argv[])
     g_return_if_fail (current_screen != NULL);
     wnck_screen_force_update(current_screen);
     window_list = wnck_screen_get_windows (current_screen);
-    name = wnck_screen_get_window_manager_name (current_screen);
 
     window = create_window ();
     for (item = g_list_first (window_list); item->next != NULL; item = item->next) {
         WnckApplication *application;
         gchar *log;
-        gchar *app_name;
-        gchar *window_title;
-        time_t timestamp;
+        gchar *window_node;
 
         application = wnck_window_get_application (item->data);
-        app_name = wnck_application_get_name (application);
-        window_title = wnck_window_get_name (item->data);
-        timestamp = time (NULL);
-        g_print("[%d] %s - %s\n", timestamp, app_name, window_title);
+        window_node = create_window_node(item->data);
+        g_print ("%s", window_node);
                 
     }
 
@@ -117,4 +113,95 @@ main (int argc, char *argv[])
     gtk_main ();
 }
 
+gchar *
+create_window_node (WnckWindow *wnck_window)
+{
+    gchar *node_text;
+    WatcherWindow *window;
+    time_t timestamp;
+        
+    window = g_malloc(sizeof (WatcherWindow));
+    node_text = g_malloc0 (1000 * sizeof (gchar));
 
+
+    window->source = wnck_window;
+    window->xid = wnck_window_get_xid(window->source);
+    window->name = g_strdup (wnck_window_get_name(window->source));
+    window->application_name = g_strdup (wnck_application_get_name(wnck_window_get_application(window->source)));
+    window->state = wnck_window_get_state(window->source);
+    window->type = get_window_type(wnck_window_get_window_type(window->source));
+    window->workspace = wnck_window_get_workspace(window->source);
+    window->workspace_number = wnck_workspace_get_number(window->workspace);
+    window->is_active = wnck_window_is_active(window->source);
+    window->visible_on_workspace = wnck_window_is_visible_on_workspace(window->source, window->workspace);
+    wnck_window_get_geometry(window->source, &window->x, &window->y, &window->width, &window->height);
+
+    /* get current timestamp in epoch unix timestamp */
+    timestamp = time (NULL);
+
+    g_sprintf (node_text, "<window>\n"
+            "\t<xid>%d</xid>\n"
+            "\t<timestamp>%d</timestamp>\n"
+            "\t<name>%s</name>\n"
+            "\t<appname>%s</appname>\n"
+            "\t<state>%d</state>\n"
+            "\t<type>%d</type>\n"
+            "\t<active>%d</active>\n"
+            "\t<visibleonworkspace>%d</visibleonworkspace>\n"
+            "\t<workspace>%d</workspace>\n"
+            "\t<geometry>%d %d %d %d</geometry>\n"
+            "</window>\n",
+            window->xid,
+            timestamp,
+            window->name,
+            window->application_name,
+            window->state,
+            window->type,
+            window->is_active,
+            window->visible_on_workspace,
+            window->workspace_number,
+            window->x,
+            window->y,
+            window->width,
+            window->height);
+    
+    return node_text;
+}
+
+gint
+get_window_type (WnckWindowType type)
+{
+    gint window_type;
+
+    switch (type) {
+        case WNCK_WINDOW_NORMAL:
+            window_type = 0;
+            break;
+        case WNCK_WINDOW_DESKTOP:
+            window_type = 1;
+            break;
+        case WNCK_WINDOW_DOCK:
+            window_type = 2;
+            break;
+        case WNCK_WINDOW_DIALOG:
+            window_type = 3;
+            break;
+        case WNCK_WINDOW_TOOLBAR:
+            window_type = 4;
+            break;
+        case WNCK_WINDOW_MENU:
+            window_type = 5;
+            break;
+        case WNCK_WINDOW_UTILITY:
+            window_type = 6;
+            break;
+        case WNCK_WINDOW_SPLASHSCREEN:
+            window_type = 7;
+            break;
+        default:
+            window_type = 8;
+            break;
+    }
+
+    return window_type;
+}
